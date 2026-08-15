@@ -1,10 +1,13 @@
 name: Deploy to GitHub Pages
 
+# Only main. The github-pages environment is created with a protection rule
+# that allows deployments from the default branch only, so a run on any other
+# branch is rejected before its first step. To deploy from a branch, allow it
+# under Settings -> Environments -> github-pages first.
 on:
   push:
     branches:
       - main
-      - claude/github-pages-mobile-test-djt7ug
   workflow_dispatch:
 
 permissions:
@@ -26,7 +29,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Requires Pages to already be enabled (Settings -> Pages -> Source:
+      # GitHub Actions). enablement: true does not help here — GITHUB_TOKEN
+      # cannot create a Pages site, only a PAT can.
       - uses: actions/configure-pages@v5
+
+      # Makes it obvious on the phone whether you are looking at a fresh deploy
+      # or a cached copy of an older one.
+      - name: Stamp the build
+        run: |
+          stamp="${GITHUB_REF_NAME} @ ${GITHUB_SHA:0:7} · $(date -u '+%Y-%m-%d %H:%M UTC')"
+          sed -i "s|__BUILD__|${stamp}|" index.html
+          grep -o 'class="build">[^<]*' index.html
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
