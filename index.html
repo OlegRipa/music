@@ -1,532 +1,1138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f4f4fb" media="(prefers-color-scheme: light)">
-<meta name="description" content="A mobile-first playground for touch, tilt, and haptics — served from GitHub Pages.">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<title>Pocket Lab</title>
-<link rel="manifest" href="manifest.webmanifest">
+<meta name="description" content="A turn-based ASCII dungeon crawler with procedurally generated floors, nine scaling monsters, and a character sheet of stats.">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<title>Crypt of Nine Seals</title>
 <style>
   :root {
-    --bg: #f4f4fb;
-    --bg-glow-a: #7c5cff;
-    --bg-glow-b: #ff5c8a;
-    --bg-glow-c: #23d5ab;
-    --card: rgba(255, 255, 255, 0.62);
-    --card-line: rgba(16, 16, 32, 0.10);
-    --ink: #14141f;
-    --ink-dim: #5a5a72;
-    --accent: #5b3df5;
-    --shadow: 0 10px 30px rgba(20, 20, 45, 0.12);
-    --radius: 20px;
+    --ground:      #DCD3BE;
+    --ground-deep: #D0C6AC;
+    --panel:       #E5DDCA;
+    --rule:        #B2A78B;
+    --rule-soft:   #C7BCA1;
+    --ink:         #26221C;
+    --ink-soft:    #5E5646;
+    --ink-faint:   #8A8069;
+    --vermilion:   #A32A1E;
+    --indigo:      #2F4272;
+    --moss:        #4C6B37;
+    --gold:        #8A6A22;
+    --unseen:      #C8BDA2;
+    --shadow:      rgba(38,34,28,.16);
+
+    --display: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+    --cell: 15px;
+    --lh: 1.35;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0b0b12;
-      --card: rgba(255, 255, 255, 0.06);
-      --card-line: rgba(255, 255, 255, 0.12);
-      --ink: #f0f0f7;
-      --ink-dim: #a0a0bb;
-      --accent: #9d8bff;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      --ground:      #15171D;
+      --ground-deep: #101218;
+      --panel:       #1C1F27;
+      --rule:        #363C49;
+      --rule-soft:   #2A2F3A;
+      --ink:         #DBD1B9;
+      --ink-soft:    #9A9179;
+      --ink-faint:   #6B6553;
+      --vermilion:   #DC6152;
+      --indigo:      #8398DE;
+      --moss:        #96BB72;
+      --gold:        #CBA24E;
+      --unseen:      #22252E;
+      --shadow:      rgba(0,0,0,.4);
     }
   }
 
   :root[data-theme="dark"] {
-    --bg: #0b0b12;
-    --card: rgba(255, 255, 255, 0.06);
-    --card-line: rgba(255, 255, 255, 0.12);
-    --ink: #f0f0f7;
-    --ink-dim: #a0a0bb;
-    --accent: #9d8bff;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    --ground:      #15171D;
+    --ground-deep: #101218;
+    --panel:       #1C1F27;
+    --rule:        #363C49;
+    --rule-soft:   #2A2F3A;
+    --ink:         #DBD1B9;
+    --ink-soft:    #9A9179;
+    --ink-faint:   #6B6553;
+    --vermilion:   #DC6152;
+    --indigo:      #8398DE;
+    --moss:        #96BB72;
+    --gold:        #CBA24E;
+    --unseen:      #22252E;
+    --shadow:      rgba(0,0,0,.4);
   }
 
   * { box-sizing: border-box; }
 
-  html, body { margin: 0; padding: 0; }
-
   body {
-    min-height: 100svh;
-    background: var(--bg);
+    margin: 0;
+    background: var(--ground-deep);
     color: var(--ink);
-    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: transparent;
-    overflow-x: hidden;
+    font-family: var(--display);
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
   }
 
-  /* Animated aurora behind everything. */
-  .aurora {
-    position: fixed;
-    inset: -30%;
-    z-index: -1;
-    filter: blur(60px);
-    opacity: 0.55;
-    pointer-events: none;
-  }
-  .aurora span {
-    position: absolute;
-    width: 60vmax;
-    height: 60vmax;
-    border-radius: 50%;
-    mix-blend-mode: screen;
-    animation: drift 18s ease-in-out infinite alternate;
-  }
-  .aurora span:nth-child(1) { background: var(--bg-glow-a); top: 0; left: -10%; }
-  .aurora span:nth-child(2) { background: var(--bg-glow-b); top: 20%; right: -15%; animation-delay: -6s; }
-  .aurora span:nth-child(3) { background: var(--bg-glow-c); bottom: -10%; left: 20%; animation-delay: -12s; }
-
-  @keyframes drift {
-    from { transform: translate3d(0, 0, 0) scale(1); }
-    to   { transform: translate3d(6vw, -8vh, 0) scale(1.25); }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .aurora span { animation: none; }
-  }
-
-  main {
-    max-width: 620px;
+  .shell {
+    max-width: 1120px;
     margin: 0 auto;
-    padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
-             max(48px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    padding: 28px 20px 56px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 22px;
   }
 
-  header { padding: 8px 4px 0; }
+  /* ---------- masthead ---------- */
 
-  h1 {
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--rule);
+  }
+
+  .masthead h1 {
     margin: 0;
-    font-size: clamp(30px, 9vw, 44px);
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-    background: linear-gradient(100deg, var(--ink), var(--accent));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .tagline { margin: 8px 0 0; color: var(--ink-dim); }
-
-  .card {
-    background: var(--card);
-    border: 1px solid var(--card-line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    padding: 18px;
-  }
-
-  .card h2 {
-    margin: 0 0 4px;
-    font-size: 13px;
+    font-size: clamp(26px, 4.4vw, 40px);
+    font-weight: 400;
+    letter-spacing: .16em;
     text-transform: uppercase;
-    letter-spacing: 0.10em;
-    color: var(--ink-dim);
+    text-wrap: balance;
   }
 
-  .card p.hint { margin: 0 0 14px; color: var(--ink-dim); font-size: 14px; }
+  .masthead h1 .seal { color: var(--vermilion); }
 
-  /* Tilt card — the ball follows device orientation. */
-  #tiltStage {
-    position: relative;
-    height: 190px;
-    border-radius: 14px;
-    background:
-      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 65%),
-      repeating-linear-gradient(0deg, var(--card-line) 0 1px, transparent 1px 28px),
-      repeating-linear-gradient(90deg, var(--card-line) 0 1px, transparent 1px 28px);
-    overflow: hidden;
-  }
-  #ball {
-    position: absolute;
-    width: 46px;
-    height: 46px;
-    margin: -23px 0 0 -23px;
-    border-radius: 50%;
-    left: 50%;
-    top: 50%;
-    background: radial-gradient(circle at 32% 30%, #fff, var(--accent) 70%);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    will-change: transform;
-  }
-  #tiltReadout {
-    position: absolute;
-    left: 10px;
-    bottom: 8px;
-    font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--ink-dim);
-  }
-
-  /* Touch card — multi-touch trails. */
-  #touchPad {
-    position: relative;
-    height: 200px;
-    border-radius: 14px;
-    background: linear-gradient(160deg,
-      color-mix(in srgb, var(--accent) 12%, transparent),
-      color-mix(in srgb, var(--bg-glow-b) 12%, transparent));
-    touch-action: none;
-    overflow: hidden;
-  }
-  #touchPad canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #touchPad .placeholder {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    color: var(--ink-dim);
-    font-size: 14px;
-    transition: opacity 0.3s;
-  }
-
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
+  .masthead .credo {
     margin: 0;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-soft);
+    letter-spacing: .02em;
   }
-  .stat {
-    background: color-mix(in srgb, var(--ink) 5%, transparent);
-    border-radius: 12px;
-    padding: 10px 12px;
+
+  /* ---------- spread ---------- */
+
+  .spread {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 880px) {
+    .spread { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     min-width: 0;
   }
-  .stat dt {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--ink-dim);
-  }
-  .stat dd {
-    margin: 3px 0 0;
-    font: 600 15px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
-    overflow-wrap: anywhere;
+
+  .leaf {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    box-shadow: 0 1px 0 var(--shadow);
+    padding: 14px 16px 16px;
   }
 
-  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .leaf > h2 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--rule-soft);
+    padding-bottom: 7px;
+  }
+
+  .leaf > h2 .depth {
+    color: var(--vermilion);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .1em;
+  }
+
+  /* ---------- map ---------- */
+
+  .map-wrap { overflow-x: auto; scrollbar-width: thin; }
+
+  @media (max-width: 640px) {
+    :root { --cell: 12px; }
+  }
+
+  #map {
+    font-family: var(--mono);
+    font-size: var(--cell);
+    line-height: var(--lh);
+    white-space: pre;
+    margin: 0;
+    color: var(--ink-soft);
+    letter-spacing: .06em;
+    -webkit-user-select: none;
+    user-select: none;
+    min-width: max-content;
+  }
+
+  #map .unseen { color: var(--unseen); }
+  #map .wall   { color: var(--ink-faint); }
+  #map .floor  { color: var(--rule); }
+  #map .dim    { opacity: .48; }
+  #map .hero   { color: var(--indigo); font-weight: 700; }
+  #map .beast  { color: var(--vermilion); font-weight: 700; }
+  #map .boss   { color: var(--vermilion); font-weight: 700; }
+  #map .loot   { color: var(--gold); font-weight: 700; }
+  #map .cure   { color: var(--moss); font-weight: 700; }
+  #map .stair  { color: var(--ink); font-weight: 700; }
+
+  /* ---------- log ---------- */
+
+  #log {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    height: 132px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+  }
+
+  #log li {
+    padding: 1px 0;
+    color: var(--ink-soft);
+    border-bottom: 1px dotted transparent;
+  }
+  #log li.hit  { color: var(--vermilion); }
+  #log li.good { color: var(--moss); }
+  #log li.gain { color: var(--gold); }
+  #log li.rite { color: var(--indigo); }
+  #log li.lead { color: var(--ink); }
+
+  /* ---------- stat sheet ---------- */
+
+  .vitals { display: flex; flex-direction: column; gap: 11px; }
+
+  .meter-row { display: flex; flex-direction: column; gap: 4px; }
+
+  .meter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .meter-head b {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meter {
+    height: 7px;
+    background: var(--ground);
+    border: 1px solid var(--rule-soft);
+    overflow: hidden;
+  }
+
+  .meter i {
+    display: block;
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    transition: transform .28s ease;
+  }
+  .meter.life i { background: var(--moss); }
+  .meter.aether i { background: var(--indigo); }
+  .meter.lore i { background: var(--gold); }
+  .meter.foe i { background: var(--vermilion); }
+
+  .grid-stats {
+    margin-top: 13px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 8px;
+  }
+
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+
+  .stat span {
+    font-size: 9.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .stat b {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .purse {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid var(--rule-soft);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .purse b {
+    font-family: var(--mono);
+    letter-spacing: 0;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .purse .coin b { color: var(--gold); }
+  .purse .vial b { color: var(--moss); }
+
+  /* ---------- bestiary card ---------- */
+
+  .quarry-empty {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-faint);
+    margin: 0;
+    padding: 8px 0 6px;
+  }
+
+  .beast-name {
+    margin: 0 0 2px;
+    font-size: 19px;
+    font-weight: 400;
+    letter-spacing: .05em;
+    color: var(--vermilion);
+    text-wrap: balance;
+  }
+
+  .beast-epithet {
+    margin: 0 0 11px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .beast-line {
+    display: flex;
+    gap: 14px;
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .beast-line b {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0;
+    font-weight: 400;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    margin-left: 5px;
+  }
+
+  /* ---------- actions ---------- */
+
+  .rites {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 13px;
+  }
 
   button {
-    flex: 1 1 auto;
-    min-height: 48px; /* comfortable thumb target */
-    padding: 12px 16px;
-    border: 1px solid var(--card-line);
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--ink) 6%, transparent);
+    font-family: var(--display);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
     color: var(--ink);
-    font: inherit;
-    font-weight: 600;
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    padding: 9px 6px;
     cursor: pointer;
-    touch-action: manipulation;
-    transition: transform 0.12s ease, background 0.2s ease;
-  }
-  button:active { transform: scale(0.96); background: color-mix(in srgb, var(--accent) 22%, transparent); }
-  button.primary { background: var(--accent); border-color: transparent; color: #fff; }
-
-  footer {
-    text-align: center;
-    color: var(--ink-dim);
-    font-size: 13px;
-    padding: 4px 0 8px;
-  }
-  footer a { color: var(--accent); }
-  footer .build {
-    display: inline-block;
-    margin-top: 6px;
-    font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-    opacity: 0.7;
+    transition: background .14s ease, color .14s ease, border-color .14s ease;
   }
 
-  .toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(18px + env(safe-area-inset-bottom));
-    transform: translate(-50%, 140%);
+  button:hover:not(:disabled) {
     background: var(--ink);
-    color: var(--bg);
-    padding: 11px 18px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: var(--shadow);
-    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-    z-index: 10;
+    color: var(--panel);
+    border-color: var(--ink);
   }
-  .toast.show { transform: translate(-50%, 0); }
+
+  button:focus-visible {
+    outline: 2px solid var(--vermilion);
+    outline-offset: 2px;
+  }
+
+  button:disabled {
+    color: var(--ink-faint);
+    border-color: var(--rule-soft);
+    cursor: not-allowed;
+    opacity: .6;
+  }
+
+  button .key {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-faint);
+    margin-left: 7px;
+    letter-spacing: 0;
+    opacity: .8;
+  }
+  button .key::before { content: "["; }
+  button .key::after  { content: "]"; }
+  button:hover:not(:disabled) .key { color: var(--rule); }
+
+  /* ---------- helm (mobile pad) ---------- */
+
+  .helm {
+    display: none;
+    grid-template-columns: repeat(3, 46px);
+    grid-template-rows: repeat(2, 42px);
+    gap: 6px;
+    justify-content: center;
+    margin-top: 14px;
+  }
+
+  .helm button { font-family: var(--mono); font-size: 15px; padding: 0; }
+  .helm .spacer { visibility: hidden; }
+
+  @media (hover: none) and (pointer: coarse) {
+    .helm { display: grid; }
+  }
+
+  /* ---------- footnote ---------- */
+
+  .footnote {
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+  }
+
+  .footnote kbd {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    border: 1px solid var(--rule);
+    background: var(--panel);
+    padding: 1px 4px;
+    color: var(--ink-soft);
+  }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .legend i { font-style: normal; font-family: var(--mono); font-weight: 700; }
+  .legend .l-hero  { color: var(--indigo); }
+  .legend .l-beast { color: var(--vermilion); }
+  .legend .l-loot  { color: var(--gold); }
+  .legend .l-cure  { color: var(--moss); }
+  .legend .l-stair { color: var(--ink); }
+
+  .flash { animation: flash .3s ease; }
+  @keyframes flash { 0%, 100% { background: var(--panel); } 40% { background: var(--ground-deep); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  .footnote .build {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0;
+    width: 100%;
+  }
 </style>
 </head>
 <body>
+<div class="shell">
 
-<div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
-
-<main>
-  <header>
-    <h1>Pocket Lab</h1>
-    <p class="tagline">A tiny page for poking at your phone: tilt it, touch it, buzz it. Served straight from GitHub Pages.</p>
+  <header class="masthead">
+    <h1>Crypt of Nine <span class="seal">Seals</span></h1>
+    <p class="credo">Nine wardens sleep below. Nine seals to break.</p>
   </header>
 
-  <section class="card">
-    <h2>Tilt</h2>
-    <p class="hint">Point the ball with your wrist. iOS needs a tap to grant motion access.</p>
-    <div id="tiltStage">
-      <div id="ball"></div>
-      <div id="tiltReadout">waiting for sensors…</div>
-    </div>
-    <div class="row" style="margin-top:14px">
-      <button id="motionBtn" class="primary">Enable tilt</button>
-    </div>
-  </section>
+  <div class="spread">
 
-  <section class="card">
-    <h2>Multi-touch</h2>
-    <p class="hint">Drag with as many fingers as you like.</p>
-    <div id="touchPad">
-      <canvas id="touchCanvas"></canvas>
-      <div class="placeholder" id="touchHint">draw here ✍︎</div>
+    <div class="col">
+      <section class="leaf">
+        <h2><span>The Undercroft</span><span class="depth" id="depth-label">DEPTH I</span></h2>
+        <div class="map-wrap"><pre id="map" aria-label="Dungeon map"></pre></div>
+      </section>
+
+      <section class="leaf">
+        <h2><span>Chronicle</span></h2>
+        <ul id="log"></ul>
+      </section>
     </div>
-  </section>
 
-  <section class="card">
-    <h2>This device</h2>
-    <dl class="stats" id="stats"></dl>
-  </section>
+    <div class="col">
+      <section class="leaf" id="sheet-leaf">
+        <h2><span>The Delver</span><span class="depth" id="level-label">LV 1</span></h2>
 
-  <section class="card">
-    <h2>Buttons that do things</h2>
-    <div class="row">
-      <button id="buzzBtn">Vibrate</button>
-      <button id="fsBtn">Fullscreen</button>
-      <button id="themeBtn">Theme</button>
+        <div class="vitals">
+          <div class="meter-row">
+            <div class="meter-head"><span>Vitality</span><b id="hp-text">30 / 30</b></div>
+            <div class="meter life"><i id="hp-bar"></i></div>
+          </div>
+          <div class="meter-row">
+            <div class="meter-head"><span>Aether</span><b id="mp-text">12 / 12</b></div>
+            <div class="meter aether"><i id="mp-bar"></i></div>
+          </div>
+          <div class="meter-row">
+            <div class="meter-head"><span>Lore</span><b id="xp-text">0 / 20</b></div>
+            <div class="meter lore"><i id="xp-bar"></i></div>
+          </div>
+        </div>
+
+        <div class="grid-stats">
+          <div class="stat"><span>Might</span><b id="s-atk">8</b></div>
+          <div class="stat"><span>Ward</span><b id="s-def">4</b></div>
+          <div class="stat"><span>Haste</span><b id="s-spd">7</b></div>
+        </div>
+
+        <div class="purse">
+          <span class="coin">Coin <b id="s-gold">0</b></span>
+          <span class="vial">Draughts <b id="s-potions">2</b></span>
+        </div>
+      </section>
+
+      <section class="leaf" id="quarry-leaf">
+        <h2><span>Quarry</span><span class="depth" id="quarry-tag"></span></h2>
+        <div id="quarry-body">
+          <p class="quarry-empty">No beast at hand. Walk into one to give battle.</p>
+        </div>
+
+        <div class="rites">
+          <button id="act-strike" disabled>Strike<span class="key">A</span></button>
+          <button id="act-ember" disabled>Emberlash<span class="key">S</span></button>
+          <button id="act-guard" disabled>Guard<span class="key">D</span></button>
+          <button id="act-flee" disabled>Flee<span class="key">F</span></button>
+          <button id="act-quaff">Draught<span class="key">Q</span></button>
+          <button id="act-mend" >Mend<span class="key">E</span></button>
+        </div>
+
+        <div class="helm">
+          <button class="spacer"></button>
+          <button data-dir="up" aria-label="Move north">&#9650;</button>
+          <button class="spacer"></button>
+          <button data-dir="left" aria-label="Move west">&#9664;</button>
+          <button data-dir="down" aria-label="Move south">&#9660;</button>
+          <button data-dir="right" aria-label="Move east">&#9654;</button>
+        </div>
+      </section>
     </div>
-  </section>
 
-  <footer>
-    Built to be opened on a phone. <a href="https://github.com/OlegRipa/music">Source</a>
-    <br>
-    <!-- Replaced with the commit + timestamp by the Pages workflow. -->
+  </div>
+
+  <p class="footnote">
+    <span><kbd>WASD</kbd> or <kbd>&larr;&uarr;&darr;&rarr;</kbd> to walk &middot; <kbd>A</kbd> strike &middot; <kbd>S</kbd> emberlash &middot; <kbd>D</kbd> guard &middot; <kbd>F</kbd> flee &middot; <kbd>Q</kbd> draught &middot; <kbd>E</kbd> mend</span>
+    <span class="legend">
+      <span><i class="l-hero">@</i> you</span>
+      <span><i class="l-beast">r g s o w</i> beasts</span>
+      <span><i class="l-loot">$</i> coin</span>
+      <span><i class="l-cure">!</i> draught</span>
+      <span><i class="l-stair">&gt;</i> descent</span>
+    </span>
     <span class="build">__BUILD__</span>
-  </footer>
-</main>
+  </p>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
 
 <script>
 (function () {
   "use strict";
 
-  var toastEl = document.getElementById("toast");
-  var toastTimer;
-  function toast(message) {
-    toastEl.textContent = message;
-    toastEl.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 1900);
+  var W = 52, H = 24;
+  var VIEW = 8;
+
+  var WALL = "#", FLOOR = ".", STAIR = ">", COIN = "$", VIAL = "!";
+
+  // ---------- bestiary ----------
+
+  var BESTIARY = [
+    { name: "Sewer Rat",      epithet: "Vermin of the flooded tier.",        glyph: "r", hp: 9,   atk: 5,  def: 1,  spd: 8,  xp: 6,   gold: 4,   floor: 1 },
+    { name: "Cave Bat",       epithet: "Quick, and fond of the eyes.",       glyph: "b", hp: 11,  atk: 6,  def: 1,  spd: 13, xp: 9,   gold: 5,   floor: 1 },
+    { name: "Green Slime",    epithet: "Digests stone. Patient about it.",   glyph: "j", hp: 19,  atk: 7,  def: 4,  spd: 3,  xp: 14,  gold: 8,   floor: 2 },
+    { name: "Goblin Cutter",  epithet: "Carries nine knives, uses two.",     glyph: "g", hp: 21,  atk: 9,  def: 3,  spd: 9,  xp: 19,  gold: 15,  floor: 2 },
+    { name: "Skeleton Warden",epithet: "Still keeps the watch it was set.",  glyph: "s", hp: 28,  atk: 12, def: 7,  spd: 6,  xp: 28,  gold: 22,  floor: 3 },
+    { name: "Orc Reaver",     epithet: "Took the third seal's door apart.",  glyph: "o", hp: 39,  atk: 16, def: 8,  spd: 7,  xp: 44,  gold: 36,  floor: 4 },
+    { name: "Barrow Wraith",  epithet: "Drinks aether through the ribs.",    glyph: "w", hp: 34,  atk: 19, def: 5,  spd: 14, xp: 60,  gold: 52,  floor: 5 },
+    { name: "Bone Colossus",  epithet: "Assembled from every warden before.",glyph: "C", hp: 66,  atk: 23, def: 12, spd: 4,  xp: 100, gold: 90,  floor: 6 },
+    { name: "The Ninth Seal", epithet: "It has been waiting the whole time.",glyph: "D", hp: 130, atk: 29, def: 15, spd: 10, xp: 300, gold: 300, floor: 9, boss: true }
+  ];
+
+  // ---------- state ----------
+
+  var rng = Math.random;
+  var map, seen, lit, monsters, items, stairs, depth, hero, quarry, guarding, over;
+
+  function ri(a, b) { return a + Math.floor(rng() * (b - a + 1)); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  hero = {
+    x: 0, y: 0,
+    hp: 30, hpMax: 30,
+    mp: 12, mpMax: 12,
+    atk: 8, def: 4, spd: 7,
+    lvl: 1, xp: 0, xpNext: 20,
+    gold: 0, potions: 2
+  };
+
+  // ---------- dungeon ----------
+
+  function carveRoom(r) {
+    for (var y = r.y; y < r.y + r.h; y++)
+      for (var x = r.x; x < r.x + r.w; x++)
+        map[y][x] = FLOOR;
   }
 
-  /* ---- Device stats ---------------------------------------------------- */
-
-  var statsEl = document.getElementById("stats");
-  var battery = "—";
-
-  function connectionLabel() {
-    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (!c) return "unknown";
-    return (c.effectiveType || "?") + (c.downlink ? " · " + c.downlink + " Mb/s" : "");
+  function carveCorridor(a, b) {
+    var x = a.cx, y = a.cy;
+    while (x !== b.cx) { map[y][x] = FLOOR; x += x < b.cx ? 1 : -1; }
+    while (y !== b.cy) { map[y][x] = FLOOR; y += y < b.cy ? 1 : -1; }
+    map[y][x] = FLOOR;
   }
 
-  // Battery status is Chromium-only and resolves asynchronously.
-  if (navigator.getBattery) {
-    navigator.getBattery().then(function (b) {
-      function update() {
-        battery = Math.round(b.level * 100) + "%" + (b.charging ? " ⚡" : "");
-        renderStats();
+  function buildFloor() {
+    map = [];
+    seen = [];
+    lit = [];
+    for (var y = 0; y < H; y++) {
+      map.push(new Array(W).fill(WALL));
+      seen.push(new Array(W).fill(false));
+      lit.push(new Array(W).fill(false));
+    }
+
+    var rooms = [], tries = 0, target = ri(6, 9);
+    while (rooms.length < target && tries < 260) {
+      tries++;
+      var w = ri(5, 11), h = ri(3, 6);
+      var x = ri(1, W - w - 2), y = ri(1, H - h - 2);
+      var r = { x: x, y: y, w: w, h: h, cx: x + (w >> 1), cy: y + (h >> 1) };
+      var clash = rooms.some(function (o) {
+        return r.x < o.x + o.w + 1 && r.x + r.w + 1 > o.x &&
+               r.y < o.y + o.h + 1 && r.y + r.h + 1 > o.y;
+      });
+      if (clash) continue;
+      carveRoom(r);
+      if (rooms.length) carveCorridor(rooms[rooms.length - 1], r);
+      rooms.push(r);
+    }
+
+    hero.x = rooms[0].cx;
+    hero.y = rooms[0].cy;
+
+    var last = rooms[rooms.length - 1];
+    stairs = { x: last.cx, y: last.cy };
+    map[stairs.y][stairs.x] = STAIR;
+
+    // populate
+    monsters = [];
+    items = [];
+
+    var pool = BESTIARY.filter(function (m) { return !m.boss && m.floor <= depth + 1; });
+    if (!pool.length) pool = [BESTIARY[0]];
+
+    var count = clamp(3 + depth, 3, 9);
+    for (var i = 0; i < count; i++) {
+      var room = rooms.length > 1 ? rooms[ri(1, rooms.length - 1)] : rooms[0];
+      var proto = pool[ri(0, pool.length - 1)];
+      var scale = 1 + (depth - proto.floor) * 0.12;
+      if (scale < 1) scale = 1;
+      monsters.push({
+        name: proto.name, epithet: proto.epithet, glyph: proto.glyph,
+        hpMax: Math.round(proto.hp * scale), hp: Math.round(proto.hp * scale),
+        atk: Math.round(proto.atk * scale), def: Math.round(proto.def * scale),
+        spd: proto.spd, xp: Math.round(proto.xp * scale), gold: Math.round(proto.gold * scale),
+        boss: false,
+        x: ri(room.x, room.x + room.w - 1), y: ri(room.y, room.y + room.h - 1)
+      });
+    }
+
+    if (depth === 9) {
+      var b = BESTIARY[BESTIARY.length - 1];
+      monsters.push({
+        name: b.name, epithet: b.epithet, glyph: b.glyph,
+        hpMax: b.hp, hp: b.hp, atk: b.atk, def: b.def, spd: b.spd,
+        xp: b.xp, gold: b.gold, boss: true,
+        x: last.cx, y: last.cy - 1 > last.y ? last.cy - 1 : last.cy
+      });
+      map[stairs.y][stairs.x] = FLOOR;
+      stairs = null;
+    }
+
+    var drops = ri(2, 4);
+    for (var d = 0; d < drops; d++) {
+      var rm = rooms[ri(0, rooms.length - 1)];
+      items.push({
+        kind: rng() < 0.45 ? VIAL : COIN,
+        value: ri(6, 14) + depth * 4,
+        x: ri(rm.x, rm.x + rm.w - 1),
+        y: ri(rm.y, rm.y + rm.h - 1)
+      });
+    }
+
+    computeLight();
+  }
+
+  // ---------- field of view ----------
+
+  function transparent(x, y) {
+    return map[y] && map[y][x] !== undefined && map[y][x] !== WALL;
+  }
+
+  function visible(x, y) {
+    var dx = x - hero.x, dy = y - hero.y;
+    if (dx * dx + dy * dy > VIEW * VIEW) return false;
+
+    var steps = Math.max(Math.abs(dx), Math.abs(dy));
+    if (steps === 0) return true;
+    for (var i = 1; i < steps; i++) {
+      var px = Math.round(hero.x + dx * i / steps);
+      var py = Math.round(hero.y + dy * i / steps);
+      if (!transparent(px, py)) return false;
+    }
+    return true;
+  }
+
+  function computeLight() {
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        var v = visible(x, y);
+        lit[y][x] = v;
+        if (v) seen[y][x] = true;
       }
-      b.addEventListener("levelchange", update);
-      b.addEventListener("chargingchange", update);
-      update();
-    }).catch(function () { /* permission or policy refusal — leave the dash */ });
+    }
   }
 
-  function renderStats() {
-    var rows = [
-      ["Viewport", window.innerWidth + " x " + window.innerHeight],
-      ["Screen", screen.width + " x " + screen.height],
-      ["Pixel ratio", (window.devicePixelRatio || 1).toFixed(2) + "x"],
-      ["Touch points", navigator.maxTouchPoints || 0],
-      ["Orientation", window.innerWidth > window.innerHeight ? "landscape" : "portrait"],
-      ["Language", navigator.language || "?"],
-      ["Online", navigator.onLine ? "yes" : "no"],
-      ["Cores", navigator.hardwareConcurrency || "?"],
-      ["Network", connectionLabel()],
-      ["Battery", battery]
-    ];
-    statsEl.innerHTML = rows.map(function (row) {
-      return '<div class="stat"><dt>' + row[0] + "</dt><dd>" + row[1] + "</dd></div>";
-    }).join("");
+  // ---------- render ----------
+
+  function monsterAt(x, y) {
+    for (var i = 0; i < monsters.length; i++)
+      if (monsters[i].hp > 0 && monsters[i].x === x && monsters[i].y === y) return monsters[i];
+    return null;
   }
 
-  renderStats();
-  window.addEventListener("resize", renderStats);
-  window.addEventListener("orientationchange", function () { setTimeout(renderStats, 250); });
-
-  /* ---- Tilt ------------------------------------------------------------ */
-
-  var ball = document.getElementById("ball");
-  var stage = document.getElementById("tiltStage");
-  var readout = document.getElementById("tiltReadout");
-  var motionBtn = document.getElementById("motionBtn");
-  var pos = { x: 0, y: 0 };
-  var target = { x: 0, y: 0 };
-  var gotOrientation = false;
-
-  function onOrientation(e) {
-    if (e.beta === null && e.gamma === null) return;
-    gotOrientation = true;
-    var beta = Math.max(-45, Math.min(45, e.beta || 0));   // front-back tilt
-    var gamma = Math.max(-45, Math.min(45, e.gamma || 0)); // left-right tilt
-    var bounds = stage.getBoundingClientRect();
-    target.x = (gamma / 45) * (bounds.width / 2 - 26);
-    target.y = (beta / 45) * (bounds.height / 2 - 26);
-    readout.textContent =
-      "β " + (e.beta || 0).toFixed(0) + "°  γ " + (e.gamma || 0).toFixed(0) + "°";
+  function itemAt(x, y) {
+    for (var i = 0; i < items.length; i++)
+      if (items[i].x === x && items[i].y === y) return items[i];
+    return null;
   }
 
-  (function animate() {
-    pos.x += (target.x - pos.x) * 0.12;
-    pos.y += (target.y - pos.y) * 0.12;
-    ball.style.transform = "translate3d(" + pos.x.toFixed(1) + "px," + pos.y.toFixed(1) + "px,0)";
-    requestAnimationFrame(animate);
-  })();
+  var mapEl = document.getElementById("map");
 
-  motionBtn.addEventListener("click", function () {
-    // iOS 13+ gates DeviceOrientationEvent behind an explicit user gesture.
-    var DOE = window.DeviceOrientationEvent;
-    if (!DOE) {
-      toast("No orientation sensor here");
+  function esc(ch) {
+    return ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch === "&" ? "&amp;" : ch;
+  }
+
+  function draw() {
+    var out = "";
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        if (!seen[y][x]) { out += "<span class=\"unseen\">&nbsp;</span>"; continue; }
+
+        var isLit = lit[y][x];
+        var ch, cls;
+
+        if (isLit && hero.x === x && hero.y === y) {
+          ch = "@"; cls = "hero";
+        } else {
+          var m = isLit ? monsterAt(x, y) : null;
+          var it = isLit ? itemAt(x, y) : null;
+          if (m) {
+            ch = m.glyph; cls = m.boss ? "boss" : "beast";
+          } else if (it) {
+            ch = it.kind; cls = it.kind === COIN ? "loot" : "cure";
+          } else {
+            ch = map[y][x];
+            cls = ch === WALL ? "wall" : ch === STAIR ? "stair" : "floor";
+            if (ch === FLOOR) ch = "·";
+          }
+        }
+
+        out += "<span class=\"" + cls + (isLit ? "" : " dim") + "\">" + esc(ch) + "</span>";
+      }
+      out += "\n";
+    }
+    mapEl.innerHTML = out;
+    keepHeroInView();
+  }
+
+  // When the grid is wider than its frame (narrow screens), follow the delver.
+  var mapWrap = document.querySelector(".map-wrap");
+
+  function keepHeroInView() {
+    if (!mapWrap) return;
+    var overflow = mapEl.scrollWidth - mapWrap.clientWidth;
+    if (overflow <= 0) return;
+    var cell = mapEl.scrollWidth / W;
+    var target = (hero.x + 0.5) * cell - mapWrap.clientWidth / 2;
+    mapWrap.scrollLeft = clamp(target, 0, overflow);
+  }
+
+  // ---------- chronicle ----------
+
+  var logEl = document.getElementById("log");
+
+  function say(text, cls) {
+    var top = logEl.firstChild;
+    if (top && top.getAttribute("data-base") === text) {
+      var n = (parseInt(top.getAttribute("data-n"), 10) || 1) + 1;
+      top.setAttribute("data-n", String(n));
+      top.textContent = text + "  ×" + n;
       return;
     }
-    if (typeof DOE.requestPermission === "function") {
-      DOE.requestPermission().then(function (state) {
-        if (state === "granted") {
-          window.addEventListener("deviceorientation", onOrientation);
-          toast("Tilt enabled");
-          motionBtn.textContent = "Tilt enabled";
-        } else {
-          toast("Permission denied");
-        }
-      }).catch(function () { toast("Permission request failed"); });
-    } else {
-      window.addEventListener("deviceorientation", onOrientation);
-      motionBtn.textContent = "Listening…";
-      setTimeout(function () {
-        toast(gotOrientation ? "Tilt enabled" : "No sensor data — try a phone");
-      }, 700);
-    }
-  });
-
-  /* ---- Multi-touch canvas ---------------------------------------------- */
-
-  var pad = document.getElementById("touchPad");
-  var hint = document.getElementById("touchHint");
-  var canvas = document.getElementById("touchCanvas");
-  var ctx = canvas.getContext("2d");
-  var strokes = {};
-  var hue = Math.random() * 360;
-
-  function sizeCanvas() {
-    var dpr = window.devicePixelRatio || 1;
-    var box = pad.getBoundingClientRect();
-    canvas.width = Math.round(box.width * dpr);
-    canvas.height = Math.round(box.height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-  }
-  sizeCanvas();
-  window.addEventListener("resize", sizeCanvas);
-
-  function localPoint(e) {
-    var box = pad.getBoundingClientRect();
-    return { x: e.clientX - box.left, y: e.clientY - box.top };
+    var li = document.createElement("li");
+    li.textContent = text;
+    li.setAttribute("data-base", text);
+    li.setAttribute("data-n", "1");
+    if (cls) li.className = cls;
+    logEl.insertBefore(li, logEl.firstChild);
+    while (logEl.children.length > 60) logEl.removeChild(logEl.lastChild);
   }
 
-  pad.addEventListener("pointerdown", function (e) {
-    pad.setPointerCapture(e.pointerId);
-    hue = (hue + 47) % 360;
-    strokes[e.pointerId] = { point: localPoint(e), color: "hsl(" + hue.toFixed(0) + " 90% 60%)" };
-    hint.style.opacity = "0";
-  });
+  // ---------- sheet ----------
 
-  pad.addEventListener("pointermove", function (e) {
-    var stroke = strokes[e.pointerId];
-    if (!stroke) return;
-    var next = localPoint(e);
-    ctx.strokeStyle = stroke.color;
-    // Pressure-sensitive where supported; a sane constant everywhere else.
-    ctx.lineWidth = 2 + (e.pressure > 0 ? e.pressure * 14 : 5);
-    ctx.beginPath();
-    ctx.moveTo(stroke.point.x, stroke.point.y);
-    ctx.lineTo(next.x, next.y);
-    ctx.stroke();
-    stroke.point = next;
-  });
+  function setBar(el, frac) {
+    el.style.transform = "scaleX(" + clamp(frac, 0, 1) + ")";
+  }
 
-  function endStroke(e) { delete strokes[e.pointerId]; }
-  pad.addEventListener("pointerup", endStroke);
-  pad.addEventListener("pointercancel", endStroke);
+  function paintSheet() {
+    document.getElementById("hp-text").textContent = Math.max(0, hero.hp) + " / " + hero.hpMax;
+    document.getElementById("mp-text").textContent = hero.mp + " / " + hero.mpMax;
+    document.getElementById("xp-text").textContent = hero.xp + " / " + hero.xpNext;
+    setBar(document.getElementById("hp-bar"), hero.hp / hero.hpMax);
+    setBar(document.getElementById("mp-bar"), hero.mp / hero.mpMax);
+    setBar(document.getElementById("xp-bar"), hero.xp / hero.xpNext);
+    document.getElementById("s-atk").textContent = hero.atk;
+    document.getElementById("s-def").textContent = hero.def;
+    document.getElementById("s-spd").textContent = hero.spd;
+    document.getElementById("s-gold").textContent = hero.gold;
+    document.getElementById("s-potions").textContent = hero.potions;
+    document.getElementById("level-label").textContent = "LV " + hero.lvl;
+    document.getElementById("depth-label").textContent = "DEPTH " + roman(depth);
+  }
 
-  // Double-tap the pad to wipe it.
-  var lastTap = 0;
-  pad.addEventListener("pointerup", function () {
-    var now = Date.now();
-    if (now - lastTap < 320) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      hint.style.opacity = "1";
-      toast("Cleared");
+  function roman(n) {
+    var table = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+    return table[n] || String(n);
+  }
+
+  var quarryBody = document.getElementById("quarry-body");
+  var quarryTag = document.getElementById("quarry-tag");
+
+  function paintQuarry() {
+    var acts = ["act-strike", "act-ember", "act-guard", "act-flee"];
+    var live = !!quarry && quarry.hp > 0 && !over;
+
+    acts.forEach(function (id) { document.getElementById(id).disabled = !live; });
+    document.getElementById("act-quaff").disabled = over || hero.potions <= 0;
+    document.getElementById("act-mend").disabled = over || hero.mp < 5;
+
+    if (over) {
+      quarryTag.textContent = hero.hp > 0 ? "SEALED" : "FALLEN";
+      quarryBody.innerHTML =
+        "<p class=\"quarry-empty\">" +
+        (hero.hp > 0
+          ? "Nine seals broken, level " + hero.lvl + ", " + hero.gold + " coin carried out."
+          : "You fell on depth " + roman(depth) + " with " + hero.gold + " coin unspent.") +
+        "</p><button id=\"act-again\" style=\"width:100%\">Descend Again</button>";
+      document.getElementById("act-again").addEventListener("click", restart);
+      return;
     }
-    lastTap = now;
-  });
 
-  /* ---- Buttons --------------------------------------------------------- */
+    if (!live) {
+      quarryTag.textContent = "";
+      quarryBody.innerHTML = "<p class=\"quarry-empty\">No beast at hand. Walk into one to give battle.</p>";
+      return;
+    }
 
-  document.getElementById("buzzBtn").addEventListener("click", function () {
-    if (navigator.vibrate && navigator.vibrate([40, 60, 120])) {
-      toast("Buzzed");
+    quarryTag.textContent = quarry.boss ? "WARDEN" : "";
+    quarryBody.innerHTML =
+      "<p class=\"beast-name\">" + quarry.name + "</p>" +
+      "<p class=\"beast-epithet\">" + quarry.epithet + "</p>" +
+      "<div class=\"meter-row\">" +
+        "<div class=\"meter-head\"><span>Vitality</span><b>" + Math.max(0, quarry.hp) + " / " + quarry.hpMax + "</b></div>" +
+        "<div class=\"meter foe\"><i id=\"foe-bar\"></i></div>" +
+      "</div>" +
+      "<div class=\"beast-line\">" +
+        "<span>Might<b>" + quarry.atk + "</b></span>" +
+        "<span>Ward<b>" + quarry.def + "</b></span>" +
+        "<span>Haste<b>" + quarry.spd + "</b></span>" +
+      "</div>";
+    setBar(document.getElementById("foe-bar"), quarry.hp / quarry.hpMax);
+  }
+
+  function paint() { draw(); paintSheet(); paintQuarry(); }
+
+  // ---------- combat ----------
+
+  function roll(atk, def) {
+    var raw = atk * (0.85 + rng() * 0.3) - def * 0.5;
+    return Math.max(1, Math.round(raw));
+  }
+
+  function heroStrike() {
+    if (!quarry) return;
+    var crit = rng() < clamp(hero.spd / 60, 0.03, 0.3);
+    var dmg = roll(hero.atk, quarry.def);
+    if (crit) dmg = Math.round(dmg * 1.8);
+    quarry.hp -= dmg;
+    say("You strike the " + quarry.name + " for " + dmg + (crit ? " — a clean cut!" : "."), "lead");
+    afterHeroTurn();
+  }
+
+  function heroEmber() {
+    if (!quarry) return;
+    if (hero.mp < 6) { say("Not enough aether for Emberlash.", "rite"); return; }
+    hero.mp -= 6;
+    var dmg = Math.max(1, Math.round((10 + hero.lvl * 3) * (0.9 + rng() * 0.25)));
+    quarry.hp -= dmg;
+    say("Emberlash scorches the " + quarry.name + " for " + dmg + ".", "rite");
+    afterHeroTurn();
+  }
+
+  function heroGuard() {
+    guarding = true;
+    say("You set your guard.", "good");
+    afterHeroTurn();
+  }
+
+  function heroFlee() {
+    if (!quarry) return;
+    if (quarry.boss) { say("The Ninth Seal blocks every road. There is no fleeing.", "hit"); monsterTurn(); return; }
+    var odds = clamp(0.35 + (hero.spd - quarry.spd) * 0.05, 0.1, 0.85);
+    if (rng() < odds) {
+      say("You break away from the " + quarry.name + ".", "good");
+      quarry = null;
+      paint();
     } else {
-      toast("No vibration API (iOS Safari)");
+      say("You cannot break away!", "hit");
+      monsterTurn();
     }
+  }
+
+  function heroQuaff() {
+    if (hero.potions <= 0) return;
+    hero.potions--;
+    var heal = Math.round(hero.hpMax * 0.45);
+    hero.hp = Math.min(hero.hpMax, hero.hp + heal);
+    say("You drain a draught. " + heal + " vitality restored.", "good");
+    if (quarry && quarry.hp > 0) monsterTurn(); else paint();
+  }
+
+  function heroMend() {
+    if (hero.mp < 5) { say("Not enough aether to Mend.", "rite"); return; }
+    hero.mp -= 5;
+    var heal = Math.round(8 + hero.lvl * 4);
+    hero.hp = Math.min(hero.hpMax, hero.hp + heal);
+    say("Mend knits your wounds for " + heal + ".", "good");
+    if (quarry && quarry.hp > 0) monsterTurn(); else paint();
+  }
+
+  function afterHeroTurn() {
+    if (quarry && quarry.hp <= 0) {
+      slay(quarry);
+      quarry = null;
+      paint();
+      return;
+    }
+    monsterTurn();
+  }
+
+  function monsterTurn() {
+    if (!quarry || quarry.hp <= 0 || over) { paint(); return; }
+
+    var dmg = roll(quarry.atk, hero.def + (guarding ? hero.def : 0));
+    if (guarding) dmg = Math.round(dmg * 0.5);
+    hero.hp -= dmg;
+    say("The " + quarry.name + " hits you for " + dmg + ".", "hit");
+    guarding = false;
+
+    if (hero.hp <= 0) {
+      hero.hp = 0;
+      over = true;
+      say("You fall on depth " + roman(depth) + ". The crypt keeps its seals.", "hit");
+      document.getElementById("sheet-leaf").classList.add("flash");
+    }
+    paint();
+  }
+
+  function slay(m) {
+    say("The " + m.name + " falls. +" + m.xp + " lore, +" + m.gold + " coin.", "gain");
+    hero.xp += m.xp;
+    hero.gold += m.gold;
+
+    if (m.boss) {
+      over = true;
+      say("The ninth seal breaks. The crypt is quiet, and it is yours.", "gain");
+      return;
+    }
+
+    while (hero.xp >= hero.xpNext) {
+      hero.xp -= hero.xpNext;
+      hero.lvl++;
+      hero.xpNext = Math.round(hero.xpNext * 1.6);
+      hero.hpMax += 7; hero.hp = hero.hpMax;
+      hero.mpMax += 3; hero.mp = hero.mpMax;
+      hero.atk += 2; hero.def += 1;
+      if (hero.lvl % 2 === 0) hero.spd += 1;
+      say("Lore deepens — you reach level " + hero.lvl + ". Wounds close.", "gain");
+    }
+  }
+
+  // ---------- movement ----------
+
+  function step(dx, dy) {
+    if (over) return;
+    if (quarry && quarry.hp > 0) { say("The " + quarry.name + " is upon you — fight or flee.", "hit"); return; }
+
+    var nx = hero.x + dx, ny = hero.y + dy;
+    if (nx < 0 || ny < 0 || nx >= W || ny >= H) return;
+    if (map[ny][nx] === WALL) return;
+
+    var m = monsterAt(nx, ny);
+    if (m) {
+      quarry = m;
+      guarding = false;
+      say("A " + m.name + " bars the way.", "lead");
+      if (m.spd > hero.spd) { say("It moves first!", "hit"); monsterTurn(); } else paint();
+      return;
+    }
+
+    hero.x = nx; hero.y = ny;
+
+    var it = itemAt(nx, ny);
+    if (it) {
+      items.splice(items.indexOf(it), 1);
+      if (it.kind === COIN) {
+        hero.gold += it.value;
+        say("You pocket " + it.value + " coin.", "gain");
+      } else {
+        hero.potions++;
+        say("You find a draught of vitality.", "good");
+      }
+    }
+
+    if (stairs && nx === stairs.x && ny === stairs.y) {
+      depth++;
+      say("You descend to depth " + roman(depth) + ".", "lead");
+      hero.mp = Math.min(hero.mpMax, hero.mp + 4);
+      buildFloor();
+      paint();
+      return;
+    }
+
+    computeLight();
+    paint();
+  }
+
+  // ---------- input ----------
+
+  var KEYS = {
+    ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+    w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0],
+    W: [0, -1], S: [0, 1], A: [-1, 0], D: [1, 0]
+  };
+
+  var DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+  document.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    var inFight = quarry && quarry.hp > 0 && !over;
+
+    if (inFight) {
+      var k = e.key.toLowerCase();
+      if (k === "a") { e.preventDefault(); heroStrike(); return; }
+      if (k === "s") { e.preventDefault(); heroEmber(); return; }
+      if (k === "d") { e.preventDefault(); heroGuard(); return; }
+      if (k === "f") { e.preventDefault(); heroFlee(); return; }
+      if (k === "q") { e.preventDefault(); heroQuaff(); return; }
+      if (k === "e") { e.preventDefault(); heroMend(); return; }
+      if (KEYS[e.key]) e.preventDefault();
+      return;
+    }
+
+    if (e.key.toLowerCase() === "q") { e.preventDefault(); heroQuaff(); return; }
+    if (e.key.toLowerCase() === "e") { e.preventDefault(); heroMend(); return; }
+
+    var mv = KEYS[e.key];
+    if (mv) { e.preventDefault(); step(mv[0], mv[1]); }
   });
 
-  document.getElementById("fsBtn").addEventListener("click", function () {
-    var root = document.documentElement;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (root.requestFullscreen) {
-      root.requestFullscreen().catch(function () { toast("Fullscreen refused"); });
-    } else {
-      toast("Add to Home Screen for fullscreen");
-    }
+  document.getElementById("act-strike").addEventListener("click", heroStrike);
+  document.getElementById("act-ember").addEventListener("click", heroEmber);
+  document.getElementById("act-guard").addEventListener("click", heroGuard);
+  document.getElementById("act-flee").addEventListener("click", heroFlee);
+  document.getElementById("act-quaff").addEventListener("click", heroQuaff);
+  document.getElementById("act-mend").addEventListener("click", heroMend);
+
+  Array.prototype.forEach.call(document.querySelectorAll(".helm button[data-dir]"), function (b) {
+    b.addEventListener("click", function () {
+      var d = DIRS[b.getAttribute("data-dir")];
+      if (d) step(d[0], d[1]);
+    });
   });
 
-  var themeBtn = document.getElementById("themeBtn");
-  themeBtn.addEventListener("click", function () {
-    var systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    var current = document.documentElement.getAttribute("data-theme") || (systemDark ? "dark" : "light");
-    var next = current === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    toast(next + " mode");
-  });
+  // ---------- begin ----------
+
+  function restart() {
+    hero.hp = hero.hpMax = 30;
+    hero.mp = hero.mpMax = 12;
+    hero.atk = 8; hero.def = 4; hero.spd = 7;
+    hero.lvl = 1; hero.xp = 0; hero.xpNext = 20;
+    hero.gold = 0; hero.potions = 2;
+    depth = 1;
+    over = false;
+    quarry = null;
+    guarding = false;
+    document.getElementById("sheet-leaf").classList.remove("flash");
+    logEl.innerHTML = "";
+    buildFloor();
+    say("You take the stair down into the undercroft. Nine seals below.", "lead");
+    paint();
+  }
+
+  restart();
 })();
 </script>
 </body>
