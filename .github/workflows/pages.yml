@@ -1,10 +1,13 @@
 name: Deploy to GitHub Pages
 
+# Only main. The github-pages environment is created with a protection rule
+# that allows deployments from the default branch only, so a run on any other
+# branch is rejected before its first step. To deploy from a branch, allow it
+# under Settings -> Environments -> github-pages first.
 on:
   push:
     branches:
       - main
-      - claude/github-pages-mobile-test-djt7ug
   workflow_dispatch:
 
 permissions:

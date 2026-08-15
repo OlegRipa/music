@@ -28,11 +28,16 @@ Two ways; pick one.
 
 ### GitHub Actions (already wired up)
 
-`.github/workflows/pages.yml` deploys the repo root on every push to `main` or to the
-`claude/github-pages-mobile-test-djt7ug` branch.
+`.github/workflows/pages.yml` deploys the repo root on every push to `main`.
 
 1. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Re-run the workflow (or push). The run posts the live URL on its `deploy` job.
+2. Push to `main` (or run the workflow manually). The run posts the live URL on its
+   `deploy` job.
+
+Deploys are restricted to `main` on purpose: enabling Pages creates a `github-pages`
+environment whose protection rule permits the default branch only, and a run on any other
+branch is rejected before its first step. To preview from a feature branch, add that branch
+under **Settings → Environments → github-pages → Deployment branches**.
 
 ### Deploy from a branch
 
