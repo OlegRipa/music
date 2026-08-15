@@ -241,6 +241,12 @@
     padding: 4px 0 8px;
   }
   footer a { color: var(--accent); }
+  footer .build {
+    display: inline-block;
+    margin-top: 6px;
+    font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    opacity: 0.7;
+  }
 
   .toast {
     position: fixed;
@@ -307,6 +313,9 @@
 
   <footer>
     Built to be opened on a phone. <a href="https://github.com/OlegRipa/music">Source</a>
+    <br>
+    <!-- Replaced with the commit + timestamp by the Pages workflow. -->
+    <span class="build">__BUILD__</span>
   </footer>
 </main>
 
@@ -328,6 +337,26 @@
   /* ---- Device stats ---------------------------------------------------- */
 
   var statsEl = document.getElementById("stats");
+  var battery = "—";
+
+  function connectionLabel() {
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!c) return "unknown";
+    return (c.effectiveType || "?") + (c.downlink ? " · " + c.downlink + " Mb/s" : "");
+  }
+
+  // Battery status is Chromium-only and resolves asynchronously.
+  if (navigator.getBattery) {
+    navigator.getBattery().then(function (b) {
+      function update() {
+        battery = Math.round(b.level * 100) + "%" + (b.charging ? " ⚡" : "");
+        renderStats();
+      }
+      b.addEventListener("levelchange", update);
+      b.addEventListener("chargingchange", update);
+      update();
+    }).catch(function () { /* permission or policy refusal — leave the dash */ });
+  }
 
   function renderStats() {
     var rows = [
@@ -338,7 +367,9 @@
       ["Orientation", window.innerWidth > window.innerHeight ? "landscape" : "portrait"],
       ["Language", navigator.language || "?"],
       ["Online", navigator.onLine ? "yes" : "no"],
-      ["Cores", navigator.hardwareConcurrency || "?"]
+      ["Cores", navigator.hardwareConcurrency || "?"],
+      ["Network", connectionLabel()],
+      ["Battery", battery]
     ];
     statsEl.innerHTML = rows.map(function (row) {
       return '<div class="stat"><dt>' + row[0] + "</dt><dd>" + row[1] + "</dd></div>";

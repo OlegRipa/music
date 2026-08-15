@@ -31,6 +31,14 @@ jobs:
       # cannot create a Pages site, only a PAT can.
       - uses: actions/configure-pages@v5
 
+      # Makes it obvious on the phone whether you are looking at a fresh deploy
+      # or a cached copy of an older one.
+      - name: Stamp the build
+        run: |
+          stamp="${GITHUB_REF_NAME} @ ${GITHUB_SHA:0:7} · $(date -u '+%Y-%m-%d %H:%M UTC')"
+          sed -i "s|__BUILD__|${stamp}|" index.html
+          grep -o 'class="build">[^<]*' index.html
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
