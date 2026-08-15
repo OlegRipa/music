@@ -26,11 +26,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # enablement lets the first run create the Pages site itself, instead of
-      # failing with "Get Pages site failed" when it has never been configured.
+      # Requires Pages to already be enabled (Settings -> Pages -> Source:
+      # GitHub Actions). enablement: true does not help here — GITHUB_TOKEN
+      # cannot create a Pages site, only a PAT can.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3

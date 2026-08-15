@@ -20,13 +20,19 @@ Everything lives in `index.html` — no build step, no dependencies.
 
 Two ways; pick one.
 
+> **Enable Pages first.** Until someone turns Pages on in the repo settings, the workflow
+> fails with `Get Pages site failed … Not Found`. The workflow cannot enable it for you —
+> creating a Pages site is not something `GITHUB_TOKEN` is permitted to do. Note also that
+> Pages on a **private** repo requires a paid plan; on the free plan the repo has to be
+> public.
+
 ### GitHub Actions (already wired up)
 
 `.github/workflows/pages.yml` deploys the repo root on every push to `main` or to the
 `claude/github-pages-mobile-test-djt7ug` branch.
 
 1. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Push. The workflow run posts the live URL on its `deploy` job.
+2. Re-run the workflow (or push). The run posts the live URL on its `deploy` job.
 
 ### Deploy from a branch
 
