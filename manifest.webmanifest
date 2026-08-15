@@ -1,0 +1,19 @@
+{
+  "name": "Pocket Lab",
+  "short_name": "Pocket Lab",
+  "description": "A mobile-first playground for touch, tilt, and haptics.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

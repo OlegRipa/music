@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f4fb" media="(prefers-color-scheme: light)">
+<meta name="description" content="A mobile-first playground for touch, tilt, and haptics — served from GitHub Pages.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Pocket Lab</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #f4f4fb;
+    --bg-glow-a: #7c5cff;
+    --bg-glow-b: #ff5c8a;
+    --bg-glow-c: #23d5ab;
+    --card: rgba(255, 255, 255, 0.62);
+    --card-line: rgba(16, 16, 32, 0.10);
+    --ink: #14141f;
+    --ink-dim: #5a5a72;
+    --accent: #5b3df5;
+    --shadow: 0 10px 30px rgba(20, 20, 45, 0.12);
+    --radius: 20px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0b12;
+      --card: rgba(255, 255, 255, 0.06);
+      --card-line: rgba(255, 255, 255, 0.12);
+      --ink: #f0f0f7;
+      --ink-dim: #a0a0bb;
+      --accent: #9d8bff;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0b0b12;
+    --card: rgba(255, 255, 255, 0.06);
+    --card-line: rgba(255, 255, 255, 0.12);
+    --ink: #f0f0f7;
+    --ink-dim: #a0a0bb;
+    --accent: #9d8bff;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    min-height: 100svh;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  /* Animated aurora behind everything. */
+  .aurora {
+    position: fixed;
+    inset: -30%;
+    z-index: -1;
+    filter: blur(60px);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .aurora span {
+    position: absolute;
+    width: 60vmax;
+    height: 60vmax;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .aurora span:nth-child(1) { background: var(--bg-glow-a); top: 0; left: -10%; }
+  .aurora span:nth-child(2) { background: var(--bg-glow-b); top: 20%; right: -15%; animation-delay: -6s; }
+  .aurora span:nth-child(3) { background: var(--bg-glow-c); bottom: -10%; left: 20%; animation-delay: -12s; }
+
+  @keyframes drift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to   { transform: translate3d(6vw, -8vh, 0) scale(1.25); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aurora span { animation: none; }
+  }
+
+  main {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+             max(48px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  header { padding: 8px 4px 0; }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 9vw, 44px);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    background: linear-gradient(100deg, var(--ink), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .tagline { margin: 8px 0 0; color: var(--ink-dim); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    padding: 18px;
+  }
+
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--ink-dim);
+  }
+
+  .card p.hint { margin: 0 0 14px; color: var(--ink-dim); font-size: 14px; }
+
+  /* Tilt card — the ball follows device orientation. */
+  #tiltStage {
+    position: relative;
+    height: 190px;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 65%),
+      repeating-linear-gradient(0deg, var(--card-line) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--card-line) 0 1px, transparent 1px 28px);
+    overflow: hidden;
+  }
+  #ball {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    margin: -23px 0 0 -23px;
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    background: radial-gradient(circle at 32% 30%, #fff, var(--accent) 70%);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    will-change: transform;
+  }
+  #tiltReadout {
+    position: absolute;
+    left: 10px;
+    bottom: 8px;
+    font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--ink-dim);
+  }
+
+  /* Touch card — multi-touch trails. */
+  #touchPad {
+    position: relative;
+    height: 200px;
+    border-radius: 14px;
+    background: linear-gradient(160deg,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      color-mix(in srgb, var(--bg-glow-b) 12%, transparent));
+    touch-action: none;
+    overflow: hidden;
+  }
+  #touchPad canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #touchPad .placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--ink-dim);
+    font-size: 14px;
+    transition: opacity 0.3s;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin: 0;
+  }
+  .stat {
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .stat dt {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-dim);
+  }
+  .stat dd {
+    margin: 3px 0 0;
+    font: 600 15px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
+  }
+
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  button {
+    flex: 1 1 auto;
+    min-height: 48px; /* comfortable thumb target */
+    padding: 12px 16px;
+    border: 1px solid var(--card-line);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.12s ease, background 0.2s ease;
+  }
+  button:active { transform: scale(0.96); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+  button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+
+  footer {
+    text-align: center;
+    color: var(--ink-dim);
+    font-size: 13px;
+    padding: 4px 0 8px;
+  }
+  footer a { color: var(--accent); }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 140%);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 11px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    z-index: 10;
+  }
+  .toast.show { transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<main>
+  <header>
+    <h1>Pocket Lab</h1>
+    <p class="tagline">A tiny page for poking at your phone: tilt it, touch it, buzz it. Served straight from GitHub Pages.</p>
+  </header>
+
+  <section class="card">
+    <h2>Tilt</h2>
+    <p class="hint">Point the ball with your wrist. iOS needs a tap to grant motion access.</p>
+    <div id="tiltStage">
+      <div id="ball"></div>
+      <div id="tiltReadout">waiting for sensors…</div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="motionBtn" class="primary">Enable tilt</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Multi-touch</h2>
+    <p class="hint">Drag with as many fingers as you like.</p>
+    <div id="touchPad">
+      <canvas id="touchCanvas"></canvas>
+      <div class="placeholder" id="touchHint">draw here ✍︎</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>This device</h2>
+    <dl class="stats" id="stats"></dl>
+  </section>
+
+  <section class="card">
+    <h2>Buttons that do things</h2>
+    <div class="row">
+      <button id="buzzBtn">Vibrate</button>
+      <button id="fsBtn">Fullscreen</button>
+      <button id="themeBtn">Theme</button>
+    </div>
+  </section>
+
+  <footer>
+    Built to be opened on a phone. <a href="https://github.com/OlegRipa/music">Source</a>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var toastEl = document.getElementById("toast");
+  var toastTimer;
+  function toast(message) {
+    toastEl.textContent = message;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 1900);
+  }
+
+  /* ---- Device stats ---------------------------------------------------- */
+
+  var statsEl = document.getElementById("stats");
+
+  function renderStats() {
+    var rows = [
+      ["Viewport", window.innerWidth + " x " + window.innerHeight],
+      ["Screen", screen.width + " x " + screen.height],
+      ["Pixel ratio", (window.devicePixelRatio || 1).toFixed(2) + "x"],
+      ["Touch points", navigator.maxTouchPoints || 0],
+      ["Orientation", window.innerWidth > window.innerHeight ? "landscape" : "portrait"],
+      ["Language", navigator.language || "?"],
+      ["Online", navigator.onLine ? "yes" : "no"],
+      ["Cores", navigator.hardwareConcurrency || "?"]
+    ];
+    statsEl.innerHTML = rows.map(function (row) {
+      return '<div class="stat"><dt>' + row[0] + "</dt><dd>" + row[1] + "</dd></div>";
+    }).join("");
+  }
+
+  renderStats();
+  window.addEventListener("resize", renderStats);
+  window.addEventListener("orientationchange", function () { setTimeout(renderStats, 250); });
+
+  /* ---- Tilt ------------------------------------------------------------ */
+
+  var ball = document.getElementById("ball");
+  var stage = document.getElementById("tiltStage");
+  var readout = document.getElementById("tiltReadout");
+  var motionBtn = document.getElementById("motionBtn");
+  var pos = { x: 0, y: 0 };
+  var target = { x: 0, y: 0 };
+  var gotOrientation = false;
+
+  function onOrientation(e) {
+    if (e.beta === null && e.gamma === null) return;
+    gotOrientation = true;
+    var beta = Math.max(-45, Math.min(45, e.beta || 0));   // front-back tilt
+    var gamma = Math.max(-45, Math.min(45, e.gamma || 0)); // left-right tilt
+    var bounds = stage.getBoundingClientRect();
+    target.x = (gamma / 45) * (bounds.width / 2 - 26);
+    target.y = (beta / 45) * (bounds.height / 2 - 26);
+    readout.textContent =
+      "β " + (e.beta || 0).toFixed(0) + "°  γ " + (e.gamma || 0).toFixed(0) + "°";
+  }
+
+  (function animate() {
+    pos.x += (target.x - pos.x) * 0.12;
+    pos.y += (target.y - pos.y) * 0.12;
+    ball.style.transform = "translate3d(" + pos.x.toFixed(1) + "px," + pos.y.toFixed(1) + "px,0)";
+    requestAnimationFrame(animate);
+  })();
+
+  motionBtn.addEventListener("click", function () {
+    // iOS 13+ gates DeviceOrientationEvent behind an explicit user gesture.
+    var DOE = window.DeviceOrientationEvent;
+    if (!DOE) {
+      toast("No orientation sensor here");
+      return;
+    }
+    if (typeof DOE.requestPermission === "function") {
+      DOE.requestPermission().then(function (state) {
+        if (state === "granted") {
+          window.addEventListener("deviceorientation", onOrientation);
+          toast("Tilt enabled");
+          motionBtn.textContent = "Tilt enabled";
+        } else {
+          toast("Permission denied");
+        }
+      }).catch(function () { toast("Permission request failed"); });
+    } else {
+      window.addEventListener("deviceorientation", onOrientation);
+      motionBtn.textContent = "Listening…";
+      setTimeout(function () {
+        toast(gotOrientation ? "Tilt enabled" : "No sensor data — try a phone");
+      }, 700);
+    }
+  });
+
+  /* ---- Multi-touch canvas ---------------------------------------------- */
+
+  var pad = document.getElementById("touchPad");
+  var hint = document.getElementById("touchHint");
+  var canvas = document.getElementById("touchCanvas");
+  var ctx = canvas.getContext("2d");
+  var strokes = {};
+  var hue = Math.random() * 360;
+
+  function sizeCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    var box = pad.getBoundingClientRect();
+    canvas.width = Math.round(box.width * dpr);
+    canvas.height = Math.round(box.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  }
+  sizeCanvas();
+  window.addEventListener("resize", sizeCanvas);
+
+  function localPoint(e) {
+    var box = pad.getBoundingClientRect();
+    return { x: e.clientX - box.left, y: e.clientY - box.top };
+  }
+
+  pad.addEventListener("pointerdown", function (e) {
+    pad.setPointerCapture(e.pointerId);
+    hue = (hue + 47) % 360;
+    strokes[e.pointerId] = { point: localPoint(e), color: "hsl(" + hue.toFixed(0) + " 90% 60%)" };
+    hint.style.opacity = "0";
+  });
+
+  pad.addEventListener("pointermove", function (e) {
+    var stroke = strokes[e.pointerId];
+    if (!stroke) return;
+    var next = localPoint(e);
+    ctx.strokeStyle = stroke.color;
+    // Pressure-sensitive where supported; a sane constant everywhere else.
+    ctx.lineWidth = 2 + (e.pressure > 0 ? e.pressure * 14 : 5);
+    ctx.beginPath();
+    ctx.moveTo(stroke.point.x, stroke.point.y);
+    ctx.lineTo(next.x, next.y);
+    ctx.stroke();
+    stroke.point = next;
+  });
+
+  function endStroke(e) { delete strokes[e.pointerId]; }
+  pad.addEventListener("pointerup", endStroke);
+  pad.addEventListener("pointercancel", endStroke);
+
+  // Double-tap the pad to wipe it.
+  var lastTap = 0;
+  pad.addEventListener("pointerup", function () {
+    var now = Date.now();
+    if (now - lastTap < 320) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hint.style.opacity = "1";
+      toast("Cleared");
+    }
+    lastTap = now;
+  });
+
+  /* ---- Buttons --------------------------------------------------------- */
+
+  document.getElementById("buzzBtn").addEventListener("click", function () {
+    if (navigator.vibrate && navigator.vibrate([40, 60, 120])) {
+      toast("Buzzed");
+    } else {
+      toast("No vibration API (iOS Safari)");
+    }
+  });
+
+  document.getElementById("fsBtn").addEventListener("click", function () {
+    var root = document.documentElement;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else if (root.requestFullscreen) {
+      root.requestFullscreen().catch(function () { toast("Fullscreen refused"); });
+    } else {
+      toast("Add to Home Screen for fullscreen");
+    }
+  });
+
+  var themeBtn = document.getElementById("themeBtn");
+  themeBtn.addEventListener("click", function () {
+    var systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var current = document.documentElement.getAttribute("data-theme") || (systemDark ? "dark" : "light");
+    var next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    toast(next + " mode");
+  });
+})();
+</script>
+</body>
+</html>
